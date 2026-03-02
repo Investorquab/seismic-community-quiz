@@ -17,6 +17,7 @@
     "hardhat": "^2.28.6"
   },
   "dependencies": {
+    "ethers": "^6.16.0",
     "express": "^5.2.1"
   }
 }

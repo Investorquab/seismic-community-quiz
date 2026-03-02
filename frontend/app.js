@@ -103,21 +103,32 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 // ── AUTO FAUCET DRIP ─────────────────────────────────────────
 async function checkAndDrip() {
-  if (!contract || !signer) return;
+  if (!signer) return;
   try {
-    const addr = await signer.getAddress();
-    const eligible = await contract.canClaimDrip(addr);
-    if (!eligible) return;
+    const addr    = await signer.getAddress();
+    const balance = await provider.getBalance(addr);
 
-    showToast("🪙 Low balance detected — requesting free devnet ETH...");
-    const tx = await contract.requestDrip();
-    await tx.wait();
+    // Only drip if balance is below 0.01 ETH
+    if (balance > ethers.parseEther("0.01")) return;
 
-    // Refresh balance display
-    await updateWalletUI();
-    showToast("✅ 0.05 ETH sent to your wallet! You can now play the quiz.", "success");
+    showToast("🪙 Low balance detected — sending you free devnet ETH...");
+
+    const response = await fetch("/api/drip", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: addr }),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      await updateWalletUI();
+      showToast("✅ 0.05 ETH sent to your wallet! You can now play the quiz.", "success");
+    } else {
+      console.log("Drip skipped:", data.reason);
+    }
   } catch (err) {
-    console.warn("Faucet drip skipped:", err.reason || err.message);
+    console.warn("Drip failed:", err.message);
   }
 }
 
