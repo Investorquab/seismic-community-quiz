@@ -1,0 +1,29 @@
+# Environment variables — NEVER commit these
+.env
+.env.*
+
+# Dependencies
+node_modules/
+
+# Hardhat
+cache/
+artifacts/
+typechain-types/
+
+# Frontend build artifacts (keep config.js out too — has contract address, regenerate on deploy)
+# frontend/config.js  ← uncomment this if you don't want to expose contract address
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# TypeScript
+*.tsbuildinfo

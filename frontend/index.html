@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seismic Quiz — Community Testnet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inconsolata:wght@300;400;600&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+  <script src="config.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --espresso:   #1a0f00;
+      --dark-brown: #2c1a0a;
+      --mid-brown:  #5c3a1e;
+      --warm-brown: #8b5e3c;
+      --tan:        #c49a6c;
+      --parchment:  #f5ead8;
+      --cream:      #fdf6ec;
+      --sienna:     #a0522d;
+      --rust:       #c1440e;
+      --gold:       #c8962a;
+      --moss:       #5a6e3a;
+      --text:       #2c1a0a;
+      --muted:      #8b7355;
+      --font-head:  'Playfair Display', serif;
+      --font-body:  'Crimson Pro', serif;
+      --font-mono:  'Inconsolata', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--parchment);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 17px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── PAPER TEXTURE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.6;
+    }
+
+    /* ── DECORATIVE TOP BAR ── */
+    .top-bar {
+      background: var(--espresso);
+      color: var(--tan);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-align: center;
+      padding: 8px;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* ── WRAPPER ── */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 28px 100px;
+    }
+
+    /* ── HEADER ── */
+    header {
+      padding: 52px 0 36px;
+      border-bottom: 2px solid var(--mid-brown);
+      margin-bottom: 44px;
+      position: relative;
+    }
+
+    header::after {
+      content: '';
+      display: block;
+      height: 1px;
+      background: var(--tan);
+      margin-top: 4px;
+    }
+
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .logo-block h1 {
+      font-family: var(--font-head);
+      font-size: clamp(42px, 9vw, 80px);
+      font-weight: 900;
+      line-height: 0.9;
+      color: var(--espresso);
+      letter-spacing: -1px;
+    }
+
+    .logo-block h1 em {
+      font-style: italic;
+      color: var(--sienna);
+    }
+
+    .logo-block .tagline {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--muted);
+      margin-top: 10px;
+      text-transform: uppercase;
+    }
+
+    /* ── CONNECT BUTTON ── */
+    #connectBtn {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 2px;
+      padding: 13px 26px;
+      background: var(--espresso);
+      color: var(--tan);
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      position: relative;
+    }
+
+    #connectBtn::before {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      border: 1px solid var(--mid-brown);
+      pointer-events: none;
+      transition: all 0.2s;
+    }
+
+    #connectBtn:hover {
+      background: var(--mid-brown);
+    }
+
+    #connectBtn:hover::before {
+      border-color: var(--tan);
+    }
+
+    #connectBtn.connected {
+      background: var(--moss);
+      color: #e8f0dc;
+    }
+
+    /* ── WALLET BAR ── */
+    #walletBar {
+      display: none;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: var(--dark-brown);
+      color: var(--tan);
+      padding: 12px 18px;
+      margin-bottom: 36px;
+      gap: 28px;
+      flex-wrap: wrap;
+      align-items: center;
+      letter-spacing: 1px;
+    }
+
+    #walletBar.visible { display: flex; }
+
+    #walletBar .label { color: var(--warm-brown); }
+    #walletBar .val { color: var(--parchment); }
+
+    /* ── SECTION HEADING ── */
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .section-head h2 {
+      font-family: var(--font-head);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--espresso);
+      white-space: nowrap;
+    }
+
+    .section-head::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, var(--tan), transparent);
+    }
+
+    /* ── CONNECT PROMPT ── */
+    #connectPrompt {
+      text-align: center;
+      padding: 72px 40px;
+      border: 1px solid var(--tan);
+      background: var(--cream);
+      position: relative;
+    }
+
+    #connectPrompt::before {
+      content: '◆';
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--parchment);
+      padding: 0 12px;
+      color: var(--sienna);
+      font-size: 14px;
+    }
+
+    #connectPrompt p {
+      font-family: var(--font-body);
+      font-size: 16px;
+      color: var(--muted);
+      margin-bottom: 28px;
+      font-style: italic;
+    }
+
+    .wallet-options {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .wallet-btn {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      padding: 12px 22px;
+      background: transparent;
+      border: 1px solid var(--mid-brown);
+      color: var(--mid-brown);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+
+    .wallet-btn:hover {
+      background: var(--mid-brown);
+      color: var(--cream);
+    }
+
+    .wallet-btn.primary {
+      background: var(--espresso);
+      border-color: var(--espresso);
+      color: var(--tan);
+    }
+
+    .wallet-btn.primary:hover {
+      background: var(--dark-brown);
+    }
+
+    .faucet-note {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 14px;
+      letter-spacing: 1px;
+    }
+
+    .faucet-note a {
+      color: var(--sienna);
+      text-decoration: none;
+      border-bottom: 1px solid var(--tan);
+    }
+
+    /* ── STATS ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: auto auto;
+      gap: 2px;
+      margin-bottom: 40px;
+      background: var(--mid-brown);
+    }
+
+    .stat-box {
+      background: var(--cream);
+      padding: 22px 16px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-family: var(--font-head);
+      font-size: 38px;
+      font-weight: 900;
+      color: var(--sienna);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      margin-top: 6px;
+      text-transform: uppercase;
+    }
+
+    /* ── DAILY BADGE ── */
+    .daily-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      background: var(--gold);
+      color: var(--espresso);
+      padding: 5px 14px;
+      margin-bottom: 28px;
+      text-transform: uppercase;
+    }
+
+    /* ── LOADING QUESTIONS ── */
+    #questionsLoading {
+      text-align: center;
+      padding: 60px 20px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 2px;
+    }
+
+    .loading-bar {
+      width: 200px;
+      height: 2px;
+      background: var(--tan);
+      margin: 20px auto 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .loading-bar::after {
+      content: '';
+      position: absolute;
+      left: -60%;
+      top: 0;
+      width: 60%;
+      height: 100%;
+      background: var(--sienna);
+      animation: loadSlide 1.2s ease-in-out infinite;
+    }
+
+    @keyframes loadSlide {
+      to { left: 100%; }
+    }
+
+    /* ── QUESTION CARDS ── */
+    #questionsContainer { display: none; }
+
+    .question-card {
+      background: var(--cream);
+      border: 1px solid var(--tan);
+      border-left: 4px solid var(--sienna);
+      padding: 28px;
+      margin-bottom: 16px;
+      opacity: 0;
+      animation: fadeUp 0.4s ease forwards;
+      position: relative;
+    }
+
+    .question-card:nth-child(1)  { animation-delay: 0.05s; }
+    .question-card:nth-child(2)  { animation-delay: 0.10s; }
+    .question-card:nth-child(3)  { animation-delay: 0.15s; }
+    .question-card:nth-child(4)  { animation-delay: 0.20s; }
+    .question-card:nth-child(5)  { animation-delay: 0.25s; }
+    .question-card:nth-child(6)  { animation-delay: 0.30s; }
+    .question-card:nth-child(7)  { animation-delay: 0.35s; }
+    .question-card:nth-child(8)  { animation-delay: 0.40s; }
+    .question-card:nth-child(9)  { animation-delay: 0.45s; }
+    .question-card:nth-child(10) { animation-delay: 0.50s; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .q-number {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: var(--warm-brown);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .q-text {
+      font-family: var(--font-body);
+      font-size: 17px;
+      font-weight: 400;
+      color: var(--espresso);
+      margin-bottom: 18px;
+      line-height: 1.55;
+    }
+
+    .options { display: grid; gap: 8px; }
+
+    .option {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 11px 16px;
+      border: 1px solid #ddd0bc;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--parchment);
+      font-size: 15px;
+      font-family: var(--font-body);
+      color: var(--text);
+    }
+
+    .option:hover {
+      border-color: var(--warm-brown);
+      background: #f0e4d0;
+    }
+
+    .option.selected {
+      border-color: var(--sienna);
+      background: #eddcc8;
+    }
+
+    .option-letter {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--warm-brown);
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+
+    .option.selected .option-letter { color: var(--sienna); }
+
+    /* ── PROGRESS BAR ── */
+    .progress-wrap {
+      margin: 28px 0 8px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--muted);
+    }
+
+    .progress-track {
+      height: 3px;
+      background: var(--tan);
+      margin-top: 8px;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--sienna);
+      transition: width 0.3s ease;
+    }
+
+    /* ── SUBMIT BUTTON ── */
+    #submitBtn {
+      width: 100%;
+      font-family: var(--font-head);
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 20px;
+      background: var(--espresso);
+      color: var(--parchment);
+      border: none;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #submitBtn::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--sienna);
+    }
+
+    #submitBtn:hover { background: var(--dark-brown); transform: translateY(-2px); }
+    #submitBtn:active { transform: translateY(0); }
+    #submitBtn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    .btn-loader {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(245,234,216,0.3);
+      border-top-color: var(--parchment);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #submitBtn.loading .btn-text { display: none; }
+    #submitBtn.loading .btn-loader { display: block; }
+
+    /* ── RESULT ── */
+    #resultSection {
+      display: none;
+      background: var(--cream);
+      border: 1px solid var(--tan);
+      padding: 40px;
+      margin-top: 24px;
+      text-align: center;
+      position: relative;
+    }
+
+    #resultSection::before,
+    #resultSection::after {
+      content: '◆ ◆ ◆';
+      display: block;
+      font-size: 10px;
+      color: var(--tan);
+      letter-spacing: 8px;
+    }
+
+    #resultSection::before { margin-bottom: 24px; }
+    #resultSection::after  { margin-top: 24px; }
+
+    #resultSection.visible { display: block; animation: fadeUp 0.4s ease; }
+
+    .result-score {
+      font-family: var(--font-head);
+      font-size: 90px;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--sienna);
+    }
+
+    .result-score.fail { color: var(--rust); }
+
+    .result-outof {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 3px;
+      color: var(--muted);
+      margin: 4px 0 20px;
+    }
+
+    .result-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 3px;
+      padding: 8px 22px;
+      border: 1px solid;
+      margin-bottom: 28px;
+      text-transform: uppercase;
+    }
+
+    .result-badge.pass { border-color: var(--moss); color: var(--moss); background: #f0f5e8; }
+    .result-badge.fail { border-color: var(--rust); color: var(--rust); background: #fdf0ec; }
+
+    .tx-info {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      word-break: break-all;
+      line-height: 1.8;
+      text-align: left;
+      background: var(--parchment);
+      padding: 16px;
+      border: 1px solid #ddd0bc;
+    }
+
+    .tx-info a { color: var(--sienna); text-decoration: none; border-bottom: 1px solid var(--tan); }
+
+    /* ── LEADERBOARD ── */
+    #leaderSection { margin-top: 48px; }
+
+    .leader-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--cream);
+    }
+
+    .leader-table th {
+      background: var(--dark-brown);
+      color: var(--tan);
+      font-size: 9px;
+      letter-spacing: 3px;
+      padding: 12px 16px;
+      text-align: left;
+      text-transform: uppercase;
+    }
+
+    .leader-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #ddd0bc;
+      color: var(--text);
+    }
+
+    .leader-table tr:last-child td { border-bottom: none; }
+
+    .leader-table tr:hover td { background: #f0e4d0; }
+
+    .rank-num {
+      font-weight: 600;
+      color: var(--warm-brown);
+    }
+
+    .rank-1 { color: var(--gold); }
+    .rank-2 { color: var(--muted); }
+    .rank-3 { color: var(--sienna); }
+
+    .addr-cell { color: var(--sienna); }
+
+    .score-cell { font-weight: 600; }
+
+    .pass-pill {
+      font-size: 9px;
+      padding: 3px 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .pass-pill.y { background: #e8f0dc; color: var(--moss); border: 1px solid var(--moss); }
+    .pass-pill.n { background: #fde8e0; color: var(--rust); border: 1px solid var(--rust); }
+
+    /* ── QUIZ SECTION ── */
+    #quizSection { display: none; }
+    #quizSection.visible { display: block; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 14px 20px;
+      background: var(--espresso);
+      color: var(--parchment);
+      border-left: 4px solid var(--sienna);
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s;
+      max-width: 340px;
+      line-height: 1.5;
+      letter-spacing: 0.5px;
+    }
+
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.error { border-left-color: var(--rust); }
+    #toast.success { border-left-color: var(--moss); }
+
+    /* ── ORNAMENT DIVIDER ── */
+    .ornament {
+      text-align: center;
+      color: var(--tan);
+      font-size: 13px;
+      letter-spacing: 12px;
+      margin: 40px 0;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      margin-top: 64px;
+      border-top: 2px solid var(--mid-brown);
+      padding-top: 6px;
+    }
+
+    footer::before {
+      content: '';
+      display: block;
+      height: 1px;
+      background: var(--tan);
+      margin-bottom: 20px;
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    .footer-inner a { color: var(--sienna); text-decoration: none; }
+    .footer-inner a:hover { border-bottom: 1px solid var(--tan); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 560px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .stats-row .stat-box:last-child { grid-column: 1/-1; }
+      header { flex-direction: column; }
+      #resultSection { padding: 28px 20px; }
+    }
+
+    /* ── TIMER ── */
+    .q-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .q-timer {
+      position: relative;
+      width: 52px;
+      height: 52px;
+      flex-shrink: 0;
+    }
+
+    .q-timer svg {
+      position: absolute;
+      top: 0; left: 0;
+    }
+
+    .timer-num {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    /* ── ACTIVE QUESTION ── */
+    .active-question {
+      border-left: 4px solid var(--sienna);
+      animation: fadeUp 0.3s ease forwards;
+    }
+
+    /* ── NAV BUTTONS ── */
+    .q-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 24px;
+      gap: 12px;
+    }
+
+    .nav-btn {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      padding: 11px 22px;
+      background: transparent;
+      border: 1px solid var(--mid-brown);
+      color: var(--mid-brown);
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+    }
+
+    .nav-btn:hover { background: var(--mid-brown); color: var(--cream); }
+
+    .nav-btn.primary {
+      background: var(--espresso);
+      border-color: var(--espresso);
+      color: var(--parchment);
+    }
+
+    .nav-btn.primary:hover { background: var(--dark-brown); }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  SEISMIC TESTNET — COMMUNITY QUIZ EXPERIMENT — CHAIN ID: 5124
+</div>
+
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-inner">
+      <div class="logo-block">
+        <h1>SEISMIC<br/><em>Quiz</em></h1>
+        <p class="tagline">// On-chain knowledge — Community Testnet</p>
+      </div>
+      <button id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+    </div>
+  </header>
+
+  <!-- WALLET BAR -->
+  <div id="walletBar">
+    <span><span class="label">WALLET: </span><span class="val" id="walletAddr">—</span></span>
+    <span><span class="label">BALANCE: </span><span class="val" id="walletBal">—</span></span>
+    <span><span class="label">NETWORK: </span><span class="val" id="walletNet">—</span></span>
+  </div>
+
+  <!-- CONNECT PROMPT -->
+  <div id="connectPrompt">
+    <p>Connect your wallet to take today's on-chain quiz and submit your score to Seismic Testnet.</p>
+    <div class="wallet-options">
+      <button class="wallet-btn primary" onclick="connectWallet()">🦊 MetaMask / Injected</button>
+      <button class="wallet-btn" onclick="connectWallet()">🔵 Coinbase Wallet</button>
+      <button class="wallet-btn" onclick="connectWallet()">🐰 Rabby / Any EVM</button>
+    </div>
+    <div class="faucet-note">
+      Need testnet ETH? →
+      <a href="https://faucet.seismictest.net" target="_blank">faucet.seismictest.net</a>
+    </div>
+  </div>
+
+  <!-- QUIZ SECTION (shown after connect) -->
+  <div id="quizSection">
+
+    <!-- STATS -->
+    <div class="section-head"><h2>Network Activity</h2></div>
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-value" id="statParticipants">—</div>
+        <div class="stat-label">Participants</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="statSubmissions">—</div>
+        <div class="stat-label">Submissions</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="statDate">—</div>
+        <div class="stat-label">Today's Edition</div>
+      </div>
+      <div class="stat-box" style="grid-column:1/-1;background:#f5ead8;border-top:2px solid var(--tan)">
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:6px">BUILT-IN FAUCET</div>
+        <div style="font-family:var(--font-body);font-size:14px;color:var(--mid-brown)">
+          🪙 No devnet ETH? No problem — connect your wallet and the contract automatically sends you <strong>0.05 ETH free</strong> to play. No external faucet needed.
+        </div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:8px">
+          Faucet balance: <span id="statFaucet" style="color:var(--sienna)">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ornament">◆ ◆ ◆</div>
+
+    <!-- QUESTIONS -->
+    <div class="section-head"><h2>Today's Quiz</h2></div>
+
+    <div class="daily-badge">
+      📅 Daily Edition — Questions refresh every 24 hours
+    </div>
+
+    <!-- Loading state -->
+    <div id="questionsLoading">
+      GENERATING TODAY'S QUESTIONS VIA AI...
+      <div class="loading-bar"></div>
+    </div>
+
+    <!-- Questions container -->
+    <div id="questionsContainer"></div>
+
+    <!-- Progress -->
+    <div class="progress-wrap" id="progressWrap" style="display:none">
+      <span id="progressText">0 / 10 answered</span>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <button id="submitBtn" onclick="submitQuiz()" style="display:none" disabled>
+      <span class="btn-text">Submit Answers On-Chain</span>
+      <div class="btn-loader"></div>
+    </button>
+
+    <div class="faucet-note" style="margin-top:12px" id="submitNote" style="display:none">
+      Submitting sends a transaction to Seismic Testnet (Chain ID: 5124)
+    </div>
+
+    <!-- RESULT -->
+    <div id="resultSection">
+      <div class="result-score" id="resultScore">—</div>
+      <div class="result-outof">OUT OF 10</div>
+      <div id="resultBadge" class="result-badge"></div>
+      <div class="tx-info" id="txInfo"></div>
+    </div>
+
+    <div class="ornament" style="margin-top:48px">◆ ◆ ◆</div>
+
+    <!-- LEADERBOARD -->
+    <div id="leaderSection">
+      <div class="section-head"><h2>Leaderboard</h2></div>
+      <table class="leader-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Address</th>
+            <th>Score</th>
+            <th>Attempts</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="leaderBody">
+          <tr>
+            <td colspan="5" style="color:var(--muted);text-align:center;padding:28px;font-style:italic">
+              Loading leaderboard...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /quizSection -->
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <span>SEISMIC QUIZ v1.0 — COMMUNITY TESTNET EXPERIMENT</span>
+      <span>
+        <a href="https://seismic-testnet.socialscan.io" target="_blank">Explorer</a>
+        &nbsp;·&nbsp;
+        <a href="https://faucet.seismictest.net" target="_blank">Faucet</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com" target="_blank">GitHub</a>
+      </span>
+    </div>
+  </footer>
+
+</div><!-- /wrapper -->
+
+<div id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
