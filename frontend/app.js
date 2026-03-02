@@ -239,9 +239,9 @@ Respond ONLY with a JSON array. No markdown, no preamble.
 [{"question":"...","options":["A","B","C","D"],"correct":0}]
 "correct" is 0-based index of the right answer.`;
 
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+  const res = await fetch("/api/questions", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${GROQ_KEY}` },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
       max_tokens: 4000,
