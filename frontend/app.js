@@ -239,9 +239,9 @@ Respond ONLY with a JSON array. No markdown, no preamble.
 [{"question":"...","options":["A","B","C","D"],"correct":0}]
 "correct" is 0-based index of the right answer.`;
 
-  const res = await fetch("/api/questions", {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${GROQ_KEY}` },
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
       max_tokens: 4000,
@@ -461,6 +461,47 @@ function showResult(score, correct, txHash) {
     <strong>Contract:</strong><br/>
     <a href="${CONFIG.explorer}/address/${CONFIG.contractAddress}" target="_blank">${CONFIG.contractAddress}</a>
   `;
+
+  // Build answer review
+  const letters = ["A", "B", "C", "D"];
+  const reviewHTML = questions.map((q, i) => {
+    const userAns    = userAnswers[i];
+    const correctAns = q.correct;
+    const isCorrect  = userAns === correctAns;
+    const skipped    = userAns === null;
+
+    const optionsHTML = q.options.map((opt, oi) => {
+      let style = "";
+      let icon  = "";
+      if (oi === correctAns) {
+        style = "background:#e8f5e0;border-color:var(--moss);";
+        icon  = "✅";
+      } else if (oi === userAns && !isCorrect) {
+        style = "background:#fde8e0;border-color:var(--rust);";
+        icon  = "❌";
+      }
+      return `
+        <div class="review-option" style="${style}">
+          <span class="option-letter" style="color:${oi===correctAns?"var(--moss)":oi===userAns?"var(--rust)":"var(--muted)"}">${letters[oi]}</span>
+          <span>${opt}</span>
+          ${icon ? `<span style="margin-left:auto">${icon}</span>` : ""}
+        </div>`;
+    }).join("");
+
+    return `
+      <div class="review-card">
+        <div class="review-qnum">Q${String(i+1).padStart(2,"0")} — ${isCorrect ? '<span style="color:var(--moss)">CORRECT</span>' : skipped ? '<span style="color:var(--muted)">SKIPPED</span>' : '<span style="color:var(--rust)">WRONG</span>'}</div>
+        <div class="review-qtext">${q.question}</div>
+        <div class="review-options">${optionsHTML}</div>
+        ${!isCorrect ? `<div class="review-explanation">✏️ Correct answer: <strong>${letters[correctAns]}. ${q.options[correctAns]}</strong></div>` : ""}
+      </div>`;
+  }).join("");
+
+  document.getElementById("answerReview").innerHTML = `
+    <div class="section-head" style="margin-top:40px"><h2>Answer Review</h2></div>
+    ${reviewHTML}
+  `;
+  document.getElementById("answerReview").style.display = "block";
 
   const r = document.getElementById("resultSection");
   r.classList.add("visible");

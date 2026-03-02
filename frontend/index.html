@@ -786,6 +786,61 @@
     }
 
     .nav-btn.primary:hover { background: var(--dark-brown); }
+
+    /* ── ANSWER REVIEW ── */
+    .review-card {
+      background: var(--cream);
+      border: 1px solid var(--tan);
+      border-left: 4px solid var(--warm-brown);
+      padding: 22px;
+      margin-bottom: 14px;
+      animation: fadeUp 0.3s ease forwards;
+    }
+
+    .review-qnum {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .review-qtext {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--espresso);
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .review-options {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .review-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      border: 1px solid #ddd0bc;
+      font-family: var(--font-body);
+      font-size: 14px;
+      background: var(--parchment);
+    }
+
+    .review-explanation {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--mid-brown);
+      background: #f5ead8;
+      border: 1px solid var(--tan);
+      padding: 10px 14px;
+      letter-spacing: 0.5px;
+      line-height: 1.6;
+    }
   </style>
 </head>
 <body>
@@ -889,7 +944,7 @@
     </button>
 
     <div class="faucet-note" style="margin-top:12px" id="submitNote" style="display:none">
-      Submitting sends a transaction to Seismic Devnet (Chain ID: 5124)
+      Submitting sends a transaction to Seismic Testnet (Chain ID: 5124)
     </div>
 
     <!-- RESULT -->
@@ -899,6 +954,8 @@
       <div id="resultBadge" class="result-badge"></div>
       <div class="tx-info" id="txInfo"></div>
     </div>
+
+    <div id="answerReview" style="display:none"></div>
 
     <div class="ornament" style="margin-top:48px">◆ ◆ ◆</div>
 
